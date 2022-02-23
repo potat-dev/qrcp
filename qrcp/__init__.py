@@ -1,0 +1,1 @@
+from .qrcp import main
