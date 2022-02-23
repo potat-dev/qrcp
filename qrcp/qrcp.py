@@ -1,15 +1,11 @@
-import urllib.request
-import urllib.parse
-import urllib.error
-import http.server, socket, socketserver
-import html
-import sys, os, platform, pathlib
-import random, re, base64, qrcode
+import urllib.request, urllib.parse, urllib.error
 from shutil import make_archive, copyfileobj
+import http.server, socket, socketserver
+import random, re, base64, qrcode, html
+import sys, os, platform, pathlib
+from ctypes import windll
 import signal, argparse
 from io import BytesIO
-
-operating_system = platform.system()
 
 
 def set_cursor(status):
@@ -17,7 +13,7 @@ def set_cursor(status):
     # Hide cursor: \033[?25h
     # Show cursor: \033[?25l
 
-    if operating_system != "Windows":
+    if platform.system() != "Windows":
         print("\033[?25" + ("h" if status else "l"), end="")
 
 
@@ -259,12 +255,12 @@ def FileUploadServerHandlerClass(output_dir, auth, debug):
 
 def get_ssid():
 
-    if operating_system == "Darwin":
+    if platform.system() == "Darwin":
         ssid = os.popen(
             "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | awk '/ SSID/ {print substr($0, index($0, $2))}'").read().strip()
         return ssid
 
-    elif operating_system == "Linux":
+    elif platform.system() == "Linux":
         ssid = os.popen("iwgetid -r 2>/dev/null",).read().strip()
         if not ssid:
             ssid = os.popen(
@@ -272,9 +268,13 @@ def get_ssid():
         return ssid
 
     else:
+        prev_codepage = windll.kernel32.GetConsoleOutputCP()
+        windll.kernel32.SetConsoleOutputCP(65001)
         # List interface information and extract the SSID from Profile
         # note that if WiFi is not connected, Profile line will not be found and nothing will be returned.
         interface_info = os.popen("netsh.exe wlan show interfaces").read()
+        windll.kernel32.SetConsoleOutputCP(prev_codepage)
+        
         for line in interface_info.splitlines():
             if line.strip().startswith("Profile"):
                 ssid = line.split(':')[1].strip()
@@ -392,16 +392,13 @@ def start_download_server(file_path, **kwargs):
     # This is the url to be encoded into the QR code
     address = "http://" + str(LOCAL_IP) + ":" + str(PORT) + "/" + file_path
 
-    print("Scan the following QR code to start downloading.")
+    print("Scan the following QR code to start downloading")
     if SSID:
         print(
             "Make sure that your smartphone is connected to \033[1;94m{}\033[0m".format(SSID))
 
-    # There are many times where I just need to visit the url
-    # and cant bother scaning the QR code everytime when debugging
     if debug:
         print(address)
-
     print_qr_code(address)
 
     try:
@@ -487,7 +484,7 @@ def b64_auth(a):
 
 
 def main():
-    if operating_system != "Windows":
+    if platform.system() != "Windows":
         # SIGSTP does not work in "Windows"
         # This disables CTRL+Z while the script is running
         signal.signal(signal.SIGTSTP, signal.SIG_IGN)
@@ -515,7 +512,7 @@ def main():
     args = parser.parse_args()
 
     # For "Windows", emulate support for ANSI escape sequences and clear the screen first
-    if operating_system == "Windows":
+    if platform.system() == "Windows":
         import colorama
         colorama.init()
         print("\033[2J", end="")
