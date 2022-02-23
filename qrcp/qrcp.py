@@ -308,21 +308,17 @@ def get_local_ips_available():
 
 
 def random_port():
-    return random.randint(1024, 65535)
+    return random.randint(1024, 9999)
 
 
 def print_qr_code(address):
-    qr = qrcode.QRCode(version=1,
-                       error_correction=qrcode.ERROR_CORRECT_L,
-                       box_size=10,
-                       border=4,)
+    qr = qrcode.QRCode(
+        error_correction=qrcode.ERROR_CORRECT_L,
+        border=2,
+    )
     qr.add_data(address)
     qr.make()
-
-    # print_tty() shows a better looking QR code.
-    # So that's why I am using print_tty() instead
-    # of print_ascii() for all operating systems
-    qr.print_tty()
+    qr.print_ascii(invert=True) # like original qrcp
 
 
 def start_download_server(file_path, **kwargs):
@@ -392,13 +388,13 @@ def start_download_server(file_path, **kwargs):
     # This is the url to be encoded into the QR code
     address = "http://" + str(LOCAL_IP) + ":" + str(PORT) + "/" + file_path
 
-    print("Scan the following QR code to start downloading")
     if SSID:
         print(
-            "Make sure that your smartphone is connected to \033[1;94m{}\033[0m".format(SSID))
+            f"Connect to \033[1;94m{SSID}\033[0m and scan the QR code:")
+    else:
+        print("Scan the following QR code to start downloading")
 
-    if debug:
-        print(address)
+    print(address, end="\n\n")
     print_qr_code(address)
 
     try:
@@ -455,15 +451,15 @@ def start_upload_server(file_path, debug, custom_port, ip_addr, auth):
     # This is the url to be encoded into the QR code
     address = "http://" + str(LOCAL_IP) + ":" + str(PORT) + "/"
 
-    print("Scan the following QR code to start uploading.")
     if SSID:
         print(
-            "Make sure that your smartphone is connected to \033[1;94m{}\033[0m".format(SSID))
+            f"Connect to \033[1;94m{SSID}\033[0m and scan the QR code:")
+    else:
+        print("Scan the following QR code to start downloading")
 
     # There are many times where I just need to visit the url
     # and cant bother scaning the QR code everytime when debugging
-    if debug:
-        print(address)
+    print(address, end="\n\n")
 
     print_qr_code(address)
 
@@ -492,8 +488,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Transfer files over WiFi between your computer and your smartphone from the terminal")
 
-    parser.add_argument('file_path', action="store",
-                        help="path that you want to transfer or store the received file.")
+    parser.add_argument('file_path', action="store", nargs='?',
+                        help="path that you want to transfer or store the received file.",
+                        default=os.getcwd())
     parser.add_argument('--debug', '-d', action="store_true",
                         help="show the encoded url.")
     parser.add_argument('--receive', '-r', action="store_true",
